@@ -12,10 +12,10 @@ import { fetchMonthlyData, interpolateMonthly } from "./fetcher.js";
    DESIGN SYSTEM
 ═══════════════════════════════════════════════════════════ */
 const D = {
-  bg:"#07090e", surface:"#0c1018", card:"#101520",
+  bg:"#07090e", surface:"#0c1018", card:"#111827",
   border:"#1c2535", border2:"#243040",
   green:"#4ade80", red:"#f87171", accent:"#a3e635",
-  text:"#cdd6e0", muted:"#4e6278", dim:"#131c28",
+  text:"#e2e8f0", muted:"#7b8fa3", dim:"#131c28",
   orange:"#fb923c", purple:"#818cf8", spy:"#f59e0b",
 };
 
@@ -434,6 +434,20 @@ const ETF_CATALOGUE = {
 };
 
 /* ═══════════════════════════════════════════════════════════
+   BUBBLE CONFIG — dynamic axes per ETF category
+═══════════════════════════════════════════════════════════ */
+const BUBBLE_CONFIG = {
+  "高股息":   { xKey:"divYield", yKey:"divGrowth", xMax:10, yMax:16, xLabel:"股息率", yLabel:"股息增长率", xFmt:v=>`${v}%`, yFmt:v=>`${v}%/yr` },
+  "股息成长": { xKey:"divYield", yKey:"divGrowth", xMax:10, yMax:16, xLabel:"股息率", yLabel:"股息增长率", xFmt:v=>`${v}%`, yFmt:v=>`${v}%/yr` },
+  "大盘指数": { xKey:"pe",       yKey:"fcf",       xMax:80, yMax:5,  xLabel:"市盈率 PE", yLabel:"FCF 覆盖率", xFmt:v=>`${v}x`, yFmt:v=>`${v}x` },
+  "科技成长": { xKey:"pe",       yKey:"fcf",       xMax:80, yMax:5,  xLabel:"市盈率 PE", yLabel:"FCF 覆盖率", xFmt:v=>`${v}x`, yFmt:v=>`${v}x` },
+  "国际股票": { xKey:"divYield", yKey:"pe",        xMax:10, yMax:40, xLabel:"股息率",    yLabel:"市盈率 PE",   xFmt:v=>`${v}%`, yFmt:v=>`${v}x` },
+  "房地产":   { xKey:"divYield", yKey:"pe",        xMax:10, yMax:80, xLabel:"股息率",    yLabel:"市盈率 PE",   xFmt:v=>`${v}%`, yFmt:v=>`${v}x` },
+  "债券":     { xKey:"divYield", yKey:"weight",    xMax:8,  yMax:20, xLabel:"收益率",    yLabel:"配置权重 %",  xFmt:v=>`${v}%`, yFmt:v=>`${v}%` },
+};
+const BUBBLE_DEFAULT = BUBBLE_CONFIG["高股息"];
+
+/* ═══════════════════════════════════════════════════════════
    COMPUTED DATA HELPERS
 ═══════════════════════════════════════════════════════════ */
 function buildTR(monthly) {
@@ -470,9 +484,9 @@ function calcCAGR(monthly) {
 }
 
 /** Dynamic XAxis interval: show ~12-15 labels max regardless of data length */
-function dateInterval(dataLen) {
+function dateInterval(dataLen, mobile = false) {
   if (dataLen <= 15) return 0;
-  return Math.max(1, Math.floor(dataLen / 13));
+  return Math.max(1, Math.floor(dataLen / (mobile ? 6 : 13)));
 }
 
 /** Compute average recovery months per drawdown range from dd array */
@@ -527,7 +541,7 @@ const NAV = [
 const TT = ({ active, payload, label, money }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background:"#0c1018", border:`1px solid #243040`, borderRadius:8, padding:"10px 14px", fontSize:11 }}>
+    <div style={{ background:"#0c1018", border:`1px solid #243040`, borderRadius:8, padding:"10px 14px", fontSize:12 }}>
       <div style={{ color:D.muted, marginBottom:5, fontWeight:600 }}>{label}</div>
       {payload.map((p, i) => (
         <div key={i} style={{ color:p.color||D.text, marginBottom:2 }}>
@@ -543,7 +557,11 @@ const TT = ({ active, payload, label, money }) => {
 /* ═══════════════════════════════════════════════════════════
    BUY STRATEGY COMPONENT (now a full standalone page)
 ═══════════════════════════════════════════════════════════ */
-function BuyStrategy({ etf, card, sectionTitle }) {
+function BuyStrategy({ etf, card, sectionTitle, isMobile=false }) {
+  const g2r = isMobile ? "1fr" : "repeat(2,1fr)";
+  const g3 = isMobile ? "1fr" : "repeat(3,1fr)";
+  const g4 = isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)";
+  const chartH = isMobile ? 180 : 220;
   const [cap, setCap] = useState(10000);
   const [mult, setMult] = useState({ a:1.5, b:2.5, c:4.0, d:6.0 });
 
@@ -608,13 +626,13 @@ function BuyStrategy({ etf, card, sectionTitle }) {
 
       {/* Pyramid rules table */}
       <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>金字塔加仓规则</div>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>金字塔加仓规则</div>
         <div style={{ overflowX:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:500 }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:500 }}>
             <thead>
               <tr style={{ borderBottom:`1px solid ${D.border2}` }}>
                 {["回调区间","加仓倍数","月投入（基础$500）","策略理念"].map(h => (
-                  <th key={h} style={{ padding:"8px 10px", textAlign:"left", color:D.muted, fontWeight:600, fontSize:10, letterSpacing:1 }}>{h}</th>
+                  <th key={h} style={{ padding:"8px 10px", textAlign:"left", color:D.muted, fontWeight:600, fontSize:11, letterSpacing:1 }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -630,7 +648,7 @@ function BuyStrategy({ etf, card, sectionTitle }) {
                   <td style={{ padding:"9px 10px", color:r.color, fontWeight:700 }}>{r.range}</td>
                   <td style={{ padding:"9px 10px", color:r.color, fontWeight:800, fontFamily:"monospace" }}>{r.factor}</td>
                   <td style={{ padding:"9px 10px", color:D.text, fontFamily:"monospace" }}>{r.amt}</td>
-                  <td style={{ padding:"9px 10px", color:D.muted, fontSize:10 }}>{r.idea}</td>
+                  <td style={{ padding:"9px 10px", color:D.muted, fontSize:11 }}>{r.idea}</td>
                 </tr>
               ))}
             </tbody>
@@ -641,14 +659,14 @@ function BuyStrategy({ etf, card, sectionTitle }) {
       {/* Capital allocation pyramid */}
       <div style={{ ...card, marginBottom:20 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16, flexWrap:"wrap" }}>
-          <span style={{ fontSize:11, color:D.muted }}>计划总资金：</span>
+          <span style={{ fontSize:12, color:D.muted }}>计划总资金：</span>
           {[5000,10000,20000,50000].map(v => (
             <button key={v} onClick={() => setCap(v)} style={{
               background: cap===v ? `${etf.color}15` : D.surface,
               border: `1px solid ${cap===v ? etf.color : D.border}`,
               borderRadius:6, padding:"4px 12px",
               color: cap===v ? etf.color : D.muted,
-              cursor:"pointer", fontFamily:"inherit", fontSize:11,
+              cursor:"pointer", fontFamily:"inherit", fontSize:12,
             }}>${v.toLocaleString()}</button>
           ))}
         </div>
@@ -663,8 +681,8 @@ function BuyStrategy({ etf, card, sectionTitle }) {
                 display:"flex", justifyContent:"space-between",
               }}>
                 <div>
-                  <span style={{ fontSize:11, fontWeight:700, color:t.color }}>{t.label}</span>
-                  <span style={{ fontSize:10, color:D.muted, marginLeft:8 }}>{t.trigger}</span>
+                  <span style={{ fontSize:12, fontWeight:700, color:t.color }}>{t.label}</span>
+                  <span style={{ fontSize:11, color:D.muted, marginLeft:8 }}>{t.trigger}</span>
                 </div>
                 <span style={{ fontSize:12, fontWeight:800, color:D.text }}>
                   ${Math.round(cap * t.pct / 100).toLocaleString()}
@@ -677,8 +695,8 @@ function BuyStrategy({ etf, card, sectionTitle }) {
 
       {/* Adjustable multiplier sliders */}
       <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>可调回调加倍倍率</div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:12 }}>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>可调回调加倍倍率</div>
+        <div style={{ display:"grid", gridTemplateColumns:g2r, gap:12 }}>
           {[
             { key:"a", label:"回调 5–10%", color:"#86efac" },
             { key:"b", label:"回调 10–20%", color:"#f59e0b" },
@@ -686,7 +704,7 @@ function BuyStrategy({ etf, card, sectionTitle }) {
             { key:"d", label:"回调 >30%", color:D.red },
           ].map(s => (
             <div key={s.key}>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, marginBottom:3 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:3 }}>
                 <span style={{ color:s.color }}>{s.label}</span>
                 <span style={{ color:s.color, fontWeight:800, fontFamily:"monospace" }}>{mult[s.key]}x</span>
               </div>
@@ -699,7 +717,7 @@ function BuyStrategy({ etf, card, sectionTitle }) {
       </div>
 
       {/* Backtest result cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:16 }}>
+      <div style={{ display:"grid", gridTemplateColumns:g4, gap:10, marginBottom:16 }}>
         {[
           { label:"金字塔市值", val:`$${(lastBT.pyramid||0).toLocaleString()}`, color:etf.color },
           { label:"普通DCA市值", val:`$${(lastBT.dca||0).toLocaleString()}`, color:D.muted },
@@ -708,15 +726,15 @@ function BuyStrategy({ etf, card, sectionTitle }) {
         ].map((m,i) => (
           <div key={i} style={{ background:D.surface, border:`1px solid ${D.border}`, borderRadius:8, padding:"10px 8px", textAlign:"center" }}>
             <div style={{ fontSize:15, fontWeight:900, color:m.color, fontFamily:"monospace" }}>{m.val}</div>
-            <div style={{ fontSize:9, color:D.muted, marginTop:4 }}>{m.label}</div>
+            <div style={{ fontSize:10, color:D.muted, marginTop:4 }}>{m.label}</div>
           </div>
         ))}
       </div>
 
       {/* Backtest area chart */}
       <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:8 }}>金字塔策略 vs 普通DCA — 历史回测</div>
-        <ResponsiveContainer width="100%" height={220}>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:8 }}>金字塔策略 vs 普通DCA — 历史回测</div>
+        <ResponsiveContainer width="100%" height={chartH}>
           <AreaChart data={backtest} margin={{top:4,right:8,left:0,bottom:0}}>
             <defs>
               <linearGradient id="pyrGrad" x1="0" y1="0" x2="0" y2="1">
@@ -725,25 +743,25 @@ function BuyStrategy({ etf, card, sectionTitle }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-            <XAxis dataKey="date" tick={{fill:D.muted,fontSize:9}} interval={dateInterval(backtest.length)}/>
-            <YAxis tick={{fill:D.muted,fontSize:9}} tickFormatter={v=>`$${(v/1000).toFixed(0)}k`}/>
+            <XAxis dataKey="date" tick={{fill:D.muted,fontSize:10}} interval={dateInterval(backtest.length, isMobile)}/>
+            <YAxis tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`$${(v/1000).toFixed(0)}k`}/>
             <Tooltip content={<TT money/>}/>
             <Area type="monotone" dataKey="pyramid" name="金字塔策略" stroke={etf.color} fill="url(#pyrGrad)" strokeWidth={2} dot={false}/>
             <Area type="monotone" dataKey="dca"     name="普通DCA"   stroke={D.muted}   fill="none"          strokeWidth={1.5} dot={false} strokeDasharray="4 3"/>
-            <Legend wrapperStyle={{fontSize:10}}/>
+            <Legend wrapperStyle={{fontSize: isMobile ? 10 : 11, paddingTop: isMobile ? 8 : 0}}/>
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
       {/* Historical multiplier timeline chart */}
       <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>历史加仓倍数时间线（颜色=触发倍数）</div>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>历史加仓倍数时间线（颜色=触发倍数）</div>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={timelineData} margin={{top:4,right:8,left:0,bottom:0}}>
             <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-            <XAxis dataKey="date" tick={{fill:D.muted,fontSize:9}} interval={Math.max(1, Math.floor(timelineData.length/15))}/>
-            <YAxis tick={{fill:D.muted,fontSize:9}} domain={[0, Math.max(mult.d+1, 8)]} tickFormatter={v=>`${v}x`}/>
-            <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+            <XAxis dataKey="date" tick={{fill:D.muted,fontSize:10}} interval={Math.max(1, Math.floor(timelineData.length/(isMobile ? 7 : 15)))}/>
+            <YAxis tick={{fill:D.muted,fontSize:10}} domain={[0, Math.max(mult.d+1, 8)]} tickFormatter={v=>`${v}x`}/>
+            <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
               formatter={(v,name) => name==="factor" ? [`${v}x`,"加仓倍数"] : [`${v}%`,"回撤"]}/>
             <Bar dataKey="factor" name="factor" radius={[2,2,0,0]}>
               {timelineData.map((d,i) => <Cell key={i} fill={factorColor(d.factor)}/>)}
@@ -753,7 +771,7 @@ function BuyStrategy({ etf, card, sectionTitle }) {
       </div>
 
       {/* Three advice cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14 }}>
+      <div style={{ display:"grid", gridTemplateColumns:g3, gap:14 }}>
         {[
           { icon:"💰", title:"资金管理", body:"总仓位不超过可投资金的40%用于单一ETF，保留现金应对极端回调机会。切勿All-in单次买入。", color:"#38bdf8" },
           { icon:"📏", title:"纪律执行", body:"严格按预设倍数执行，不受市场情绪影响。回调时恐惧是正常的，但数据证明纪律性买入长期收益更高。", color:"#f59e0b" },
@@ -762,7 +780,7 @@ function BuyStrategy({ etf, card, sectionTitle }) {
           <div key={i} style={{ ...card, borderTop:`3px solid ${c.color}` }}>
             <div style={{ fontSize:22, marginBottom:6 }}>{c.icon}</div>
             <div style={{ fontSize:13, fontWeight:800, color:c.color, marginBottom:8 }}>{c.title}</div>
-            <div style={{ fontSize:11, color:D.text, lineHeight:1.8 }}>{c.body}</div>
+            <div style={{ fontSize:12, color:D.text, lineHeight:1.8 }}>{c.body}</div>
           </div>
         ))}
       </div>
@@ -773,7 +791,11 @@ function BuyStrategy({ etf, card, sectionTitle }) {
 /* ═══════════════════════════════════════════════════════════
    RETIREMENT SECTION — enhanced with all missing charts
 ═══════════════════════════════════════════════════════════ */
-function RetirementSection({ etf, card }) {
+function RetirementSection({ etf, card, isMobile=false }) {
+  const g2r = isMobile ? "1fr" : "repeat(2,1fr)";
+  const g3 = isMobile ? "1fr" : "repeat(3,1fr)";
+  const gSide = isMobile ? "1fr" : "240px 1fr";
+  const chartH = isMobile ? 180 : 220;
   const [age,       setAge]       = useState(25);
   const [retire,    setRetire]    = useState(60);
   const [assets,    setAssets]    = useState(100000);
@@ -804,9 +826,9 @@ function RetirementSection({ etf, card }) {
 
   return (
     <div>
-      <div style={{ display:"grid", gridTemplateColumns:"240px 1fr", gap:16, marginBottom:20 }}>
+      <div style={{ display:"grid", gridTemplateColumns:gSide, gap:16, marginBottom:20 }}>
         <div style={{ ...card }}>
-          <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>参数配置</div>
+          <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>参数配置</div>
           {[
             { label:"当前年龄",    val:age,     set:setAge,     min:22, max:58,     step:1,    unit:"岁",  fmt:false },
             { label:"退休年龄",    val:retire,  set:setRetire,  min:40, max:70,     step:1,    unit:"岁",  fmt:false },
@@ -817,7 +839,7 @@ function RetirementSection({ etf, card }) {
             { label:"股息年增率",  val:dg,      set:setDg,      min:2,  max:20,     step:0.5,  unit:"%",   fmt:false },
           ].map((p,i) => (
             <div key={i} style={{ marginBottom:12 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, marginBottom:3 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:3 }}>
                 <span style={{ color:D.muted }}>{p.label}</span>
                 <span style={{ color:etf.color, fontWeight:700, fontFamily:"monospace" }}>
                   {p.unit==="$" ? `$${p.fmt?p.val.toLocaleString():p.val}` : `${p.val}${p.unit}`}
@@ -831,7 +853,7 @@ function RetirementSection({ etf, card }) {
         </div>
 
         <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10 }}>
+          <div style={{ display:"grid", gridTemplateColumns:g2r, gap:10 }}>
             {[
               { label:"退休时总资产",     val:`$${(final.assets||0).toLocaleString()}`,   color:etf.color },
               { label:"退休时月股息",     val:`$${(final.monthlyDiv||0).toLocaleString()}`, color: (final.monthlyDiv||0)>=target?D.green:D.red },
@@ -840,13 +862,13 @@ function RetirementSection({ etf, card }) {
             ].map((m,i) => (
               <div key={i} style={{ ...card, textAlign:"center", borderTop:`3px solid ${m.color}` }}>
                 <div style={{ fontSize:22, fontWeight:900, color:m.color, fontFamily:"monospace" }}>{m.val}</div>
-                <div style={{ fontSize:10, color:D.muted, marginTop:4 }}>{m.label}</div>
+                <div style={{ fontSize:11, color:D.muted, marginTop:4 }}>{m.label}</div>
               </div>
             ))}
           </div>
 
           {hitAge && (
-            <div style={{ background:`${hitAge.age<=retire?D.green:D.orange}10`, border:`1px solid ${hitAge.age<=retire?D.green:D.orange}30`, borderRadius:8, padding:"10px 14px", fontSize:11, color:hitAge.age<=retire?D.green:D.orange }}>
+            <div style={{ background:`${hitAge.age<=retire?D.green:D.orange}10`, border:`1px solid ${hitAge.age<=retire?D.green:D.orange}30`, borderRadius:8, padding:"10px 14px", fontSize:12, color:hitAge.age<=retire?D.green:D.orange }}>
               {hitAge.age<=retire
                 ? `🎯 ${hitAge.age}岁月股息达 $${target.toLocaleString()}，提前 ${retire-hitAge.age} 年可 FIRE`
                 : `⚠ 需到 ${hitAge.age} 岁才能达标，建议增加月定投`}
@@ -855,7 +877,7 @@ function RetirementSection({ etf, card }) {
 
           {/* Asset growth chart (left side of split) */}
           <div style={{ ...card }}>
-            <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>资产增长预测</div>
+            <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>资产增长预测</div>
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={sim} margin={{top:4,right:8,left:0,bottom:0}}>
                 <defs>
@@ -865,8 +887,8 @@ function RetirementSection({ etf, card }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-                <XAxis dataKey="age" tick={{fill:D.muted,fontSize:9}}/>
-                <YAxis tick={{fill:D.muted,fontSize:9}} tickFormatter={v=>`$${(v/1e6).toFixed(1)}M`}/>
+                <XAxis dataKey="age" tick={{fill:D.muted,fontSize:10}}/>
+                <YAxis tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`$${(v/1e6).toFixed(1)}M`}/>
                 <Tooltip content={<TT money/>}/>
                 <Area type="monotone" dataKey="assets" name="总资产" stroke={etf.color} fill="url(#retGrad)" strokeWidth={2} dot={false}/>
               </AreaChart>
@@ -877,15 +899,15 @@ function RetirementSection({ etf, card }) {
 
       {/* Monthly dividend bar chart — separate */}
       <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>月股息收入预测（达标后变绿）</div>
-        <ResponsiveContainer width="100%" height={220}>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>月股息收入预测（达标后变绿）</div>
+        <ResponsiveContainer width="100%" height={chartH}>
           <BarChart data={sim} margin={{top:4,right:8,left:0,bottom:0}}>
             <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-            <XAxis dataKey="age" tick={{fill:D.muted,fontSize:9}}/>
-            <YAxis tick={{fill:D.muted,fontSize:9}} tickFormatter={v=>`$${v.toLocaleString()}`}/>
+            <XAxis dataKey="age" tick={{fill:D.muted,fontSize:10}}/>
+            <YAxis tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`$${v.toLocaleString()}`}/>
             <ReferenceLine y={target} stroke={D.red} strokeDasharray="4 3"
-              label={{value:`目标$${target.toLocaleString()}/月`,fill:D.red,fontSize:9,position:"right"}}/>
-            <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+              label={{value:`目标$${target.toLocaleString()}/月`,fill:D.red,fontSize:10,position:"right"}}/>
+            <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
               formatter={v=>[`$${Number(v).toLocaleString()}`,"月股息"]}/>
             <Bar dataKey="monthlyDiv" name="月股息" radius={[2,2,0,0]}>
               {sim.map((d,i) => <Cell key={i} fill={d.monthlyDiv >= target ? D.green : etf.color}/>)}
@@ -896,7 +918,7 @@ function RetirementSection({ etf, card }) {
 
       {/* Yield on Cost compounding effect chart */}
       <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>Yield on Cost 复利效应</div>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>Yield on Cost 复利效应</div>
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={sim} margin={{top:4,right:8,left:0,bottom:0}}>
             <defs>
@@ -906,14 +928,14 @@ function RetirementSection({ etf, card }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-            <XAxis dataKey="age" tick={{fill:D.muted,fontSize:9}}/>
-            <YAxis tick={{fill:D.muted,fontSize:9}} tickFormatter={v=>`${v}%`}/>
-            <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+            <XAxis dataKey="age" tick={{fill:D.muted,fontSize:10}}/>
+            <YAxis tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`${v}%`}/>
+            <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
               formatter={v=>[`${v}%`,"YoC"]}/>
             <Area type="monotone" dataKey="yoc" name="Yield on Cost" stroke={D.accent} fill="url(#yocRetGrad)" strokeWidth={2} dot={false}/>
-            <ReferenceLine y={etf.divYield} stroke={D.muted} strokeDasharray="3 2" label={{value:`初始${etf.divYield}%`,fill:D.muted,fontSize:9}}/>
-            <ReferenceLine y={10} stroke={D.orange} strokeDasharray="3 2" label={{value:"10% YoC",fill:D.orange,fontSize:9}}/>
-            <ReferenceLine y={20} stroke={D.green} strokeDasharray="3 2" label={{value:"20% YoC",fill:D.green,fontSize:9}}/>
+            <ReferenceLine y={etf.divYield} stroke={D.muted} strokeDasharray="3 2" label={{value:`初始${etf.divYield}%`,fill:D.muted,fontSize:10}}/>
+            <ReferenceLine y={10} stroke={D.orange} strokeDasharray="3 2" label={{value:"10% YoC",fill:D.orange,fontSize:10}}/>
+            <ReferenceLine y={20} stroke={D.green} strokeDasharray="3 2" label={{value:"20% YoC",fill:D.green,fontSize:10}}/>
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -921,16 +943,16 @@ function RetirementSection({ etf, card }) {
       {/* Collapsible yearly data table */}
       <div style={{ ...card, marginBottom:20 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer" }} onClick={() => setShowTable(v => !v)}>
-          <div style={{ fontSize:10, letterSpacing:2, color:D.muted }}>逐年详细数据表</div>
+          <div style={{ fontSize:11, letterSpacing:2, color:D.muted }}>逐年详细数据表</div>
           <span style={{ fontSize:12, color:D.muted }}>{showTable ? "▲ 收起" : "▼ 展开"}</span>
         </div>
         {showTable && (
           <div style={{ overflowX:"auto", marginTop:14 }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:10, minWidth:600 }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:600 }}>
               <thead>
                 <tr style={{ borderBottom:`1px solid ${D.border2}` }}>
                   {["年龄","总资产","ETF配置部分","YoC","月股息","年股息"].map(h => (
-                    <th key={h} style={{ padding:"6px 8px", textAlign:"center", color:D.muted, fontWeight:600, fontSize:9, letterSpacing:1 }}>{h}</th>
+                    <th key={h} style={{ padding:"6px 8px", textAlign:"center", color:D.muted, fontWeight:600, fontSize:10, letterSpacing:1 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -952,7 +974,7 @@ function RetirementSection({ etf, card }) {
       </div>
 
       {/* Three key assumption/warning cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14 }}>
+      <div style={{ display:"grid", gridTemplateColumns:g3, gap:14 }}>
         {[
           { icon:"📊", title:"假设基础", body:`模型假设年化总回报${ret}%、股息年增${dg}%，基于历史数据。实际表现会因市场周期波动，建议用保守参数（-2%）做压力测试。`, color:"#38bdf8" },
           { icon:"💸", title:"未计入的成本", body:"本模型未扣除：通胀侵蚀（年均2-3%）、资本利得税、州税、医疗保险、提前取款罚金。实际可用收入需打7-8折。", color:"#fb923c" },
@@ -961,7 +983,7 @@ function RetirementSection({ etf, card }) {
           <div key={i} style={{ ...card, borderTop:`3px solid ${c.color}` }}>
             <div style={{ fontSize:22, marginBottom:6 }}>{c.icon}</div>
             <div style={{ fontSize:13, fontWeight:800, color:c.color, marginBottom:8 }}>{c.title}</div>
-            <div style={{ fontSize:11, color:D.text, lineHeight:1.8 }}>{c.body}</div>
+            <div style={{ fontSize:12, color:D.text, lineHeight:1.8 }}>{c.body}</div>
           </div>
         ))}
       </div>
@@ -972,7 +994,9 @@ function RetirementSection({ etf, card }) {
 /* ═══════════════════════════════════════════════════════════
    HOLDINGS SECTION — proper component (fixes hooks-in-IIFE)
 ═══════════════════════════════════════════════════════════ */
-function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
+function HoldingsSection({ etf, selectedTicker, card, sectionTitle, isMobile=false }) {
+  const g2 = isMobile ? "1fr" : "1fr 1fr";
+  const g4 = isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)";
   const [selH, setSelH] = useState(null);
   const sel = selH !== null ? etf.holdings[selH] : null;
 
@@ -986,7 +1010,7 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
       {sectionTitle("持仓分析", `SECTION 05 · HOLDINGS ANALYSIS · ${selectedTicker}`)}
 
       {/* Fund overview cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:20 }}>
+      <div style={{ display:"grid", gridTemplateColumns:g4, gap:12, marginBottom:20 }}>
         {[
           { label:"当前价格", val:`$${etf.monthly[etf.monthly.length-1]?.[1] || "N/A"}`, color:etf.color },
           { label:"股息率", val:`${etf.divYield}%`, color:D.green },
@@ -994,16 +1018,16 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
           { label:"前10大持仓数", val:`${etf.holdings.length}`, color:D.accent },
         ].map((s,i) => (
           <div key={i} style={{ ...card, textAlign:"center", borderTop:`3px solid ${s.color}` }}>
-            <div style={{ fontSize:20, fontWeight:900, color:s.color, fontFamily:"monospace" }}>{s.val}</div>
-            <div style={{ fontSize:10, color:D.muted, marginTop:4 }}>{s.label}</div>
+            <div style={{ fontSize:22, fontWeight:900, color:s.color, fontFamily:"monospace" }}>{s.val}</div>
+            <div style={{ fontSize:11, color:D.muted, marginTop:4 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:20 }}>
+      <div style={{ display:"grid", gridTemplateColumns:g2, gap:16, marginBottom:20 }}>
         {/* Top 10 holdings list */}
         <div style={{ ...card }}>
-          <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>前10大持仓</div>
+          <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>前10大持仓</div>
           {etf.holdings.map((h,i) => (
             <div key={i} onClick={() => setSelH(selH===i?null:i)} style={{
               display:"flex", alignItems:"center", gap:8,
@@ -1012,34 +1036,34 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
               border:`1px solid ${selH===i?etf.color+"40":"transparent"}`,
               borderRadius:6, cursor:"pointer",
             }}>
-              <div style={{ width:14, fontSize:10, fontWeight:700, color:D.muted }}>{i+1}</div>
-              <div style={{ width:40, fontSize:10, fontWeight:900, color:etf.color, fontFamily:"monospace" }}>{h.ticker}</div>
+              <div style={{ width:14, fontSize:11, fontWeight:700, color:D.muted }}>{i+1}</div>
+              <div style={{ width:40, fontSize:11, fontWeight:900, color:etf.color, fontFamily:"monospace" }}>{h.ticker}</div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:10, color:D.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{h.name}</div>
+                <div style={{ fontSize:11, color:D.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{h.name}</div>
               </div>
               <div style={{ flex:1, height:6, background:D.dim, borderRadius:3, minWidth:40 }}>
                 <div style={{ height:"100%", width:`${h.weight*12}%`, background:`linear-gradient(90deg,${etf.color}60,${etf.color})`, borderRadius:3 }}/>
               </div>
-              <div style={{ width:36, textAlign:"right", fontSize:11, fontWeight:700, color:etf.color, fontFamily:"monospace" }}>{h.weight}%</div>
+              <div style={{ width:36, textAlign:"right", fontSize:12, fontWeight:700, color:etf.color, fontFamily:"monospace" }}>{h.weight}%</div>
             </div>
           ))}
         </div>
 
         {/* Sector pie chart + table */}
         <div style={{ ...card }}>
-          <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>行业分布</div>
+          <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>行业分布</div>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={etf.sectors} dataKey="pct" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}>
                 {etf.sectors.map((s,i) => <Cell key={i} fill={ETF_PALETTE[i % ETF_PALETTE.length]}/>)}
               </Pie>
-              <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+              <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
                 formatter={v=>[`${v}%`]}/>
             </PieChart>
           </ResponsiveContainer>
           <div style={{ marginTop:8 }}>
             {etf.sectors.map((s,i) => (
-              <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:10, padding:"3px 0", borderBottom:`1px solid ${D.border}` }}>
+              <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:11, padding:"3px 0", borderBottom:`1px solid ${D.border}` }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                   <div style={{ width:8, height:8, borderRadius:2, background:ETF_PALETTE[i % ETF_PALETTE.length] }}/>
                   <span style={{ color:D.text }}>{s.name}</span>
@@ -1052,7 +1076,7 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
       </div>
 
       {/* Valuation metrics cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:20 }}>
+      <div style={{ display:"grid", gridTemplateColumns:g4, gap:12, marginBottom:20 }}>
         {[
           { label:"平均 PE", val:`${avgPE.toFixed(1)}x`, color:avgPE < 25 ? D.green : D.orange },
           { label:"平均 FCF 覆盖率", val:`${avgFCF.toFixed(1)}x`, color:avgFCF >= 1.8 ? D.green : D.red },
@@ -1061,20 +1085,20 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
         ].map((s,i) => (
           <div key={i} style={{ ...card, textAlign:"center" }}>
             <div style={{ fontSize:18, fontWeight:900, color:s.color, fontFamily:"monospace" }}>{s.val}</div>
-            <div style={{ fontSize:9, color:D.muted, marginTop:4 }}>{s.label}</div>
+            <div style={{ fontSize:10, color:D.muted, marginTop:4 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Individual stock metrics table */}
       <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>个股深度指标</div>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>个股深度指标</div>
         <div style={{ overflowX:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:10, minWidth:650 }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:650 }}>
             <thead>
               <tr style={{ borderBottom:`1px solid ${D.border2}` }}>
                 {["个股","权重","股息率","增长率","PE","FCF覆盖","连续年数","护城河"].map(h => (
-                  <th key={h} style={{ padding:"6px 8px", textAlign:h==="个股"?"left":"center", color:D.muted, fontWeight:600, fontSize:9, letterSpacing:1 }}>{h}</th>
+                  <th key={h} style={{ padding:"6px 8px", textAlign:h==="个股"?"left":"center", color:D.muted, fontWeight:600, fontSize:10, letterSpacing:1 }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1086,7 +1110,7 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
                   <tr key={i} style={{ borderBottom:`1px solid ${D.border}` }}>
                     <td style={{ padding:"6px 8px" }}>
                       <span style={{ fontWeight:800, color:etf.color, fontFamily:"monospace" }}>{h.ticker}</span>
-                      <span style={{ color:D.muted, fontSize:9, marginLeft:6 }}>{h.name}</span>
+                      <span style={{ color:D.muted, fontSize:10, marginLeft:6 }}>{h.name}</span>
                     </td>
                     <td style={{ padding:"6px 8px", textAlign:"center", color:D.text }}>{h.weight}%</td>
                     <td style={{ padding:"6px 8px", textAlign:"center", color:h.divYield>=3?D.green:D.muted, fontWeight:700 }}>{h.divYield}%</td>
@@ -1103,50 +1127,57 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
         </div>
       </div>
 
-      {/* Scatter: div yield vs growth */}
-      <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:4 }}>股息率 vs 股息增长率散点图</div>
-        <div style={{ fontSize:10, color:D.muted, marginBottom:10 }}>气泡大小 = 持仓权重</div>
-        <div style={{ position:"relative", height:240, background:D.dim, borderRadius:8, overflow:"hidden" }}>
-          <div style={{ position:"absolute", left:"38%", top:0, bottom:0, width:1, background:D.border }}/>
-          <div style={{ position:"absolute", left:0, right:0, top:"50%", height:1, background:D.border }}/>
-          {etf.holdings.map((h,i) => {
-            const x = 8 + (Math.min(h.divYield,10) / 10) * 84;
-            const y = 84 - (Math.min(h.divGrowth,16) / 16) * 76;
-            const sz = 16 + h.weight * 4;
-            return (
-              <div key={i} title={`${h.ticker}: 股息${h.divYield}% 增长${h.divGrowth}%/yr`}
-                style={{
-                  position:"absolute",
-                  left:`calc(${x}% - ${sz/2}px)`, top:`calc(${y}% - ${sz/2}px)`,
-                  width:sz, height:sz,
-                  background:`${etf.color}25`, border:`2px solid ${etf.color}`,
-                  borderRadius:"50%", display:"flex", alignItems:"center",
-                  justifyContent:"center", fontSize:sz>28?9:7,
-                  color:etf.color, fontWeight:700, cursor:"default",
-                }}>{h.ticker}</div>
-            );
-          })}
-          <div style={{ position:"absolute", bottom:4, left:"50%", transform:"translateX(-50%)", fontSize:9, color:D.muted }}>← 股息率低 · 高 →</div>
-          <div style={{ position:"absolute", left:4, top:"50%", transform:"translateY(-50%) rotate(-90deg)", fontSize:9, color:D.muted }}>← 增长率低 · 高 →</div>
-        </div>
-      </div>
+      {/* Scatter: dynamic axes per ETF category */}
+      {(() => {
+        const bc = BUBBLE_CONFIG[etf.category] || BUBBLE_DEFAULT;
+        return (
+          <div style={{ ...card, marginBottom:20 }}>
+            <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:4 }}>{bc.xLabel} vs {bc.yLabel} 散点图</div>
+            <div style={{ fontSize:11, color:D.muted, marginBottom:10 }}>气泡大小 = 持仓权重</div>
+            <div style={{ position:"relative", height:240, background:D.dim, borderRadius:8, overflow:"hidden" }}>
+              <div style={{ position:"absolute", left:"38%", top:0, bottom:0, width:1, background:D.border }}/>
+              <div style={{ position:"absolute", left:0, right:0, top:"50%", height:1, background:D.border }}/>
+              {etf.holdings.map((h,i) => {
+                const xVal = h[bc.xKey] ?? 0;
+                const yVal = h[bc.yKey] ?? 0;
+                const x = 8 + (Math.min(xVal, bc.xMax) / bc.xMax) * 84;
+                const y = 84 - (Math.min(yVal, bc.yMax) / bc.yMax) * 76;
+                const sz = 16 + h.weight * 4;
+                return (
+                  <div key={i} title={`${h.ticker}: ${bc.xLabel} ${bc.xFmt(xVal)} · ${bc.yLabel} ${bc.yFmt(yVal)}`}
+                    style={{
+                      position:"absolute",
+                      left:`calc(${x}% - ${sz/2}px)`, top:`calc(${y}% - ${sz/2}px)`,
+                      width:sz, height:sz,
+                      background:`${etf.color}25`, border:`2px solid ${etf.color}`,
+                      borderRadius:"50%", display:"flex", alignItems:"center",
+                      justifyContent:"center", fontSize:sz>28?9:7,
+                      color:etf.color, fontWeight:700, cursor:"default",
+                    }}>{h.ticker}</div>
+                );
+              })}
+              <div style={{ position:"absolute", bottom:4, left:"50%", transform:"translateX(-50%)", fontSize:10, color:D.muted }}>← {bc.xLabel}低 · 高 →</div>
+              <div style={{ position:"absolute", left:4, top:"50%", transform:"translateY(-50%) rotate(-90deg)", fontSize:10, color:D.muted }}>← {bc.yLabel}低 · 高 →</div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Dividend streak horizontal bars */}
       <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>股息连续增长年数</div>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>股息连续增长年数</div>
         {[...etf.holdings].sort((a,b)=>b.streak-a.streak).map((h,i) => {
           const isKing = h.streak>=50, isAris = h.streak>=25;
           const bc = isKing?D.accent:isAris?D.green:h.streak>=10?D.orange:D.red;
           const label = isKing?"👑 股息之王":isAris?"🏆 股息贵族":h.streak>=10?"✓ 合格":"—";
           return (
             <div key={i} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-              <div style={{ width:40, fontSize:10, fontWeight:700, color:etf.color, fontFamily:"monospace" }}>{h.ticker}</div>
+              <div style={{ width:40, fontSize:11, fontWeight:700, color:etf.color, fontFamily:"monospace" }}>{h.ticker}</div>
               <div style={{ flex:1, height:8, background:D.dim, borderRadius:4 }}>
                 <div style={{ height:"100%", width:`${Math.min(h.streak/65*100,100)}%`, background:bc, borderRadius:4, transition:"width 0.8s" }}/>
               </div>
-              <div style={{ width:32, textAlign:"right", fontSize:11, color:bc, fontWeight:700 }}>{h.streak}年</div>
-              <div style={{ fontSize:9, color:bc, minWidth:80 }}>{label}</div>
+              <div style={{ width:32, textAlign:"right", fontSize:12, color:bc, fontWeight:700 }}>{h.streak}年</div>
+              <div style={{ fontSize:10, color:bc, minWidth:80 }}>{label}</div>
             </div>
           );
         })}
@@ -1157,9 +1188,9 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
         <div style={{ ...card, borderLeft:`4px solid ${etf.color}`, background:`linear-gradient(135deg,${etf.color}05,${D.card})`, marginBottom:20 }}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14, flexWrap:"wrap", gap:10 }}>
             <div>
-              <div style={{ fontSize:20, fontWeight:900, color:etf.color }}>{sel.ticker}</div>
+              <div style={{ fontSize:22, fontWeight:900, color:etf.color }}>{sel.ticker}</div>
               <div style={{ fontSize:12, color:D.text, marginTop:2 }}>{sel.name}</div>
-              <div style={{ fontSize:10, color:D.muted, marginTop:1 }}>持仓权重 {sel.weight}%</div>
+              <div style={{ fontSize:11, color:D.muted, marginTop:1 }}>持仓权重 {sel.weight}%</div>
             </div>
             <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
               {[
@@ -1171,18 +1202,18 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
               ].map((m,j) => (
                 <div key={j} style={{ background:D.surface, border:`1px solid ${m.good?D.green+"40":D.border}`, borderRadius:8, padding:"7px 11px", textAlign:"center", minWidth:64 }}>
                   <div style={{ fontSize:13, fontWeight:800, color:m.good?D.green:D.muted }}>{m.val}</div>
-                  <div style={{ fontSize:9, color:D.muted, marginTop:2 }}>{m.label}</div>
+                  <div style={{ fontSize:10, color:D.muted, marginTop:2 }}>{m.label}</div>
                 </div>
               ))}
             </div>
           </div>
           <div>
-            <div style={{ fontSize:9, color:D.muted, marginBottom:6 }}>股息健康度</div>
+            <div style={{ fontSize:10, color:D.muted, marginBottom:6 }}>股息健康度</div>
             <div style={{ display:"flex", gap:4, alignItems:"center" }}>
               {[sel.divYield>=3,sel.divGrowth>=7,sel.fcf>=1.8,sel.streak>=20,sel.pe>0&&sel.pe<=25].map((p,k) => (
                 <div key={k} style={{ width:30, height:8, borderRadius:4, background:p?D.green:D.dim }}/>
               ))}
-              <span style={{ fontSize:10, color:D.muted, marginLeft:8 }}>
+              <span style={{ fontSize:11, color:D.muted, marginLeft:8 }}>
                 {[sel.divYield>=3,sel.divGrowth>=7,sel.fcf>=1.8,sel.streak>=20,sel.pe>0&&sel.pe<=25].filter(Boolean).length}/5
               </span>
             </div>
@@ -1191,7 +1222,7 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
       )}
 
       {/* SCHD selection criteria cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
+      <div style={{ display:"grid", gridTemplateColumns:g4, gap:12 }}>
         {[
           { label:"连续10年增息", icon:"📈", desc:"每年稳定增长股息，筛掉短期高息陷阱", color:"#38bdf8" },
           { label:"FCF 覆盖率", icon:"💰", desc:"自由现金流足够覆盖股息支出，可持续性强", color:D.green },
@@ -1200,8 +1231,8 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
         ].map((c,i) => (
           <div key={i} style={{ ...card, textAlign:"center", borderTop:`3px solid ${c.color}` }}>
             <div style={{ fontSize:22, marginBottom:6 }}>{c.icon}</div>
-            <div style={{ fontSize:11, fontWeight:800, color:c.color, marginBottom:6 }}>{c.label}</div>
-            <div style={{ fontSize:10, color:D.text, lineHeight:1.7 }}>{c.desc}</div>
+            <div style={{ fontSize:12, fontWeight:800, color:c.color, marginBottom:6 }}>{c.label}</div>
+            <div style={{ fontSize:11, color:D.text, lineHeight:1.7 }}>{c.desc}</div>
           </div>
         ))}
       </div>
@@ -1212,7 +1243,8 @@ function HoldingsSection({ etf, selectedTicker, card, sectionTitle }) {
 /* ═══════════════════════════════════════════════════════════
    COMPARE SECTION — compare all ETFs side by side
 ═══════════════════════════════════════════════════════════ */
-function CompareSection({ activeETF, card, sectionTitle }) {
+function CompareSection({ activeETF, card, sectionTitle, isMobile=false }) {
+  const g4 = isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)";
   const [metric, setMetric] = useState("cagr");
   const tickers = Object.keys(ETF_CATALOGUE);
   const metrics = [
@@ -1253,20 +1285,20 @@ function CompareSection({ activeETF, card, sectionTitle }) {
             background: metric===mx.id ? `${activeETF.color}15` : D.surface,
             border: `1px solid ${metric===mx.id ? activeETF.color : D.border}`,
             borderRadius:6, padding:"5px 12px", color: metric===mx.id ? activeETF.color : D.muted,
-            cursor:"pointer", fontFamily:"inherit", fontSize:11,
+            cursor:"pointer", fontFamily:"inherit", fontSize:12,
           }}>{mx.label}</button>
         ))}
       </div>
 
       {/* Bar chart */}
       <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>{m.label} — 全部ETF排名</div>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>{m.label} — 全部ETF排名</div>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={data} margin={{top:4,right:16,left:0,bottom:0}} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" stroke={D.border} horizontal={false}/>
-            <XAxis type="number" tick={{fill:D.muted,fontSize:9}} tickFormatter={v=>`${v}${m.unit}`}/>
-            <YAxis type="category" dataKey="ticker" tick={{fill:D.text,fontSize:11,fontFamily:"monospace"}} width={44}/>
-            <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+            <XAxis type="number" tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`${v}${m.unit}`}/>
+            <YAxis type="category" dataKey="ticker" tick={{fill:D.text,fontSize:12,fontFamily:"monospace"}} width={44}/>
+            <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
               formatter={v=>[`${v}${m.unit}`, m.label]}/>
             <Bar dataKey="val" radius={[0,4,4,0]}>
               {data.map((d,i) => <Cell key={i} fill={d.color}/>)}
@@ -1277,32 +1309,32 @@ function CompareSection({ activeETF, card, sectionTitle }) {
 
       {/* Radar */}
       <div style={{ ...card, marginBottom:20 }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>多维能力雷达（标准化）</div>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>多维能力雷达（标准化）</div>
         <ResponsiveContainer width="100%" height={300}>
           <RadarChart data={radarData} cx="50%" cy="50%" outerRadius={110}>
             <PolarGrid stroke={D.border}/>
-            <PolarAngleAxis dataKey="axis" tick={{fill:D.muted,fontSize:11}}/>
+            <PolarAngleAxis dataKey="axis" tick={{fill:D.muted,fontSize:12}}/>
             {tickers.map(t => (
               <Radar key={t} name={t} dataKey={t}
                 stroke={ETF_CATALOGUE[t].color}
                 fill={ETF_CATALOGUE[t].color}
                 fillOpacity={0.08} strokeWidth={2}/>
             ))}
-            <Legend wrapperStyle={{fontSize:10}}/>
-            <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}/>
+            <Legend wrapperStyle={{fontSize: isMobile ? 10 : 11, paddingTop: isMobile ? 8 : 0}}/>
+            <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}/>
           </RadarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Full metrics table */}
       <div style={{ ...card }}>
-        <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>完整指标对照表</div>
+        <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>完整指标对照表</div>
         <div style={{ overflowX:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:600 }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:600 }}>
             <thead>
               <tr style={{ borderBottom:`1px solid ${D.border2}` }}>
                 {["ETF","类别","CAGR","股息率","增长率","最大回撤","Beta","费用率","夏普"].map(h => (
-                  <th key={h} style={{ padding:"8px 10px", textAlign:h==="ETF"||h==="类别"?"left":"center", color:D.muted, fontWeight:600, fontSize:10, letterSpacing:1 }}>{h}</th>
+                  <th key={h} style={{ padding:"8px 10px", textAlign:h==="ETF"||h==="类别"?"left":"center", color:D.muted, fontWeight:600, fontSize:11, letterSpacing:1 }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1314,9 +1346,9 @@ function CompareSection({ activeETF, card, sectionTitle }) {
                   <tr key={t} style={{ borderBottom:`1px solid ${D.border}`, background: isActive ? `${e.color}08` : i%2===0?"rgba(255,255,255,0.01)":"transparent" }}>
                     <td style={{ padding:"9px 10px" }}>
                       <span style={{ fontWeight:900, color:e.color, fontFamily:"monospace" }}>{t}</span>
-                      {isActive && <span style={{ fontSize:9, color:e.color, marginLeft:6, opacity:0.7 }}>◀ 当前</span>}
+                      {isActive && <span style={{ fontSize:10, color:e.color, marginLeft:6, opacity:0.7 }}>◀ 当前</span>}
                     </td>
-                    <td style={{ padding:"9px 10px", color:D.muted, fontSize:10 }}>{e.category}</td>
+                    <td style={{ padding:"9px 10px", color:D.muted, fontSize:11 }}>{e.category}</td>
                     <td style={{ padding:"9px 10px", textAlign:"center", color:D.green, fontWeight:700 }}>{e.cagr}%</td>
                     <td style={{ padding:"9px 10px", textAlign:"center", color:D.accent, fontWeight:700 }}>{e.divYield}%</td>
                     <td style={{ padding:"9px 10px", textAlign:"center", color:D.accent }}>{e.divGrowth}%</td>
@@ -1339,11 +1371,12 @@ function CompareSection({ activeETF, card, sectionTitle }) {
    MAIN APP
 ═══════════════════════════════════════════════════════════ */
 export default function App() {
-  const [selectedTicker, setSelectedTicker] = useState("SCHD");
+  const [selectedTicker, setSelectedTicker] = useState("SPY");
   const [active, setActive]                 = useState("overview");
   const [entered, setEntered]               = useState(false);
   const [dcaAmt, setDcaAmt]                 = useState(500);
-  const [sidebarOpen, setSidebarOpen]       = useState(true);
+  const [isMobile, setIsMobile]             = useState(typeof window !== "undefined" && window.innerWidth < 768);
+  const [sidebarOpen, setSidebarOpen]       = useState(() => typeof window !== "undefined" && window.innerWidth >= 768);
 
   // Data fetching state
   const [liveData, setLiveData]             = useState({});   // { TICKER: { monthly, lastDate, source } }
@@ -1352,6 +1385,17 @@ export default function App() {
   const [lastDate, setLastDate]             = useState(null);
 
   useEffect(() => { setTimeout(() => setEntered(true), 80); }, []);
+
+  // Responsive breakpoint listener
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(true);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // Fetch data from Yahoo Finance on ticker change
   useEffect(() => {
@@ -1398,10 +1442,19 @@ export default function App() {
   const card         = { background:D.card, border:`1px solid ${D.border}`, borderRadius:12, padding:"20px" };
   const sectionTitle = (t, sub) => (
     <div style={{ marginBottom:20 }}>
-      <div style={{ fontSize:10, letterSpacing:3, color:D.muted, marginBottom:6 }}>{sub}</div>
-      <h2 style={{ margin:0, fontSize:20, fontWeight:800, color:D.text, letterSpacing:-0.5 }}>{t}</h2>
+      <div style={{ fontSize:11, letterSpacing:3, color:D.muted, marginBottom:6 }}>{sub}</div>
+      <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:D.text, letterSpacing:-0.5 }}>{t}</h2>
     </div>
   );
+
+  // Responsive helpers
+  const g4 = isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)";
+  const g3 = isMobile ? "1fr" : "repeat(3,1fr)";
+  const g2 = isMobile ? "1fr" : "1fr 1fr";
+  const g2r = isMobile ? "1fr" : "repeat(2,1fr)";
+  const gSide = isMobile ? "1fr" : "240px 1fr";
+  const chartH = isMobile ? 180 : 220;
+  const chartHL = isMobile ? 200 : 260;
 
   /* ── Year-over-year heatmap ── */
   const heatmap = useMemo(() => {
@@ -1427,28 +1480,39 @@ export default function App() {
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:D.bg, color:D.text, fontFamily:"'IBM Plex Mono','Courier New',monospace" }}>
 
+      {/* ══ SIDEBAR BACKDROP (mobile) ═════════════════════ */}
+      {isMobile && sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} style={{
+          position:"fixed", inset:0, background:"rgba(0,0,0,0.5)",
+          zIndex:49, transition:"opacity 0.25s",
+        }}/>
+      )}
+
       {/* ══ SIDEBAR ═══════════════════════════════════════ */}
       <div style={{
-        width: sidebarOpen ? 220 : 0, flexShrink:0, overflow:"hidden",
+        ...(isMobile
+          ? { position:"fixed", top:0, left:0, height:"100vh", width:280, zIndex:50,
+              transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
+              transition:"transform 0.25s ease" }
+          : { width: sidebarOpen ? 220 : 0, flexShrink:0, overflow:"hidden",
+              position:"sticky", top:0, height:"100vh",
+              transition:"width 0.25s ease" }),
         background:D.surface, borderRight:`1px solid ${D.border}`,
         display:"flex", flexDirection:"column",
-        position:"sticky", top:0, height:"100vh",
-        transition:"width 0.25s ease",
       }}>
         <div style={{ padding:"20px 18px 12px", whiteSpace:"nowrap" }}>
-          <div style={{ fontSize:9, letterSpacing:3, color:D.muted, marginBottom:4 }}>ETF RESEARCH PLATFORM</div>
+          <div style={{ fontSize:10, letterSpacing:3, color:D.muted, marginBottom:4 }}>ETF RESEARCH PLATFORM</div>
           <div style={{ fontSize:15, fontWeight:900, color:D.text }}>深度研究</div>
-          <div style={{ fontSize:10, color:D.muted, marginTop:1 }}>通用分析模版</div>
         </div>
 
         {/* ETF Selector */}
         <div style={{ padding:"0 12px 12px", borderBottom:`1px solid ${D.border}` }}>
-          <div style={{ fontSize:9, letterSpacing:2, color:D.muted, marginBottom:8, paddingLeft:6 }}>选择 ETF</div>
+          <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:8, paddingLeft:6 }}>选择 ETF</div>
           {tickers.map(t => {
             const e = ETF_CATALOGUE[t];
             const sel = t === selectedTicker;
             return (
-              <button key={t} onClick={() => { setSelectedTicker(t); setActive("overview"); }} style={{
+              <button key={t} onClick={() => { setSelectedTicker(t); setActive("overview"); if(isMobile) setSidebarOpen(false); }} style={{
                 display:"flex", alignItems:"center", gap:8, width:"100%",
                 padding:"8px 10px", marginBottom:3,
                 background: sel ? `${e.color}15` : "transparent",
@@ -1459,9 +1523,9 @@ export default function App() {
                 <div style={{ width:8, height:8, borderRadius:"50%", background:e.color, flexShrink:0 }}/>
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:12, fontWeight:sel?800:500, color:sel?e.color:D.text, letterSpacing:0.5 }}>{t}</div>
-                  <div style={{ fontSize:9, color:D.muted, marginTop:1 }}>{e.category}</div>
+                  <div style={{ fontSize:10, color:D.muted, marginTop:1 }}>{e.category}</div>
                 </div>
-                {sel && <div style={{ marginLeft:"auto", fontSize:9, color:e.color }}>▶</div>}
+                {sel && <div style={{ marginLeft:"auto", fontSize:10, color:e.color }}>▶</div>}
               </button>
             );
           })}
@@ -1470,12 +1534,12 @@ export default function App() {
         {/* Nav sections */}
         <div style={{ flex:1, padding:"8px 0", overflowY:"auto" }}>
           {NAV.map(n => (
-            <button key={n.id} onClick={() => setActive(n.id)} style={{
+            <button key={n.id} onClick={() => { setActive(n.id); if(isMobile) setSidebarOpen(false); }} style={{
               display:"flex", alignItems:"center", gap:10, width:"100%",
               padding:"10px 18px", background: active===n.id ? `${etf.color}12` : "transparent",
               border:"none", borderLeft: active===n.id ? `2px solid ${etf.color}` : "2px solid transparent",
               color: active===n.id ? etf.color : D.muted, cursor:"pointer",
-              fontFamily:"inherit", fontSize:11, fontWeight: active===n.id ? 700 : 400,
+              fontFamily:"inherit", fontSize:12, fontWeight: active===n.id ? 700 : 400,
               transition:"all 0.15s", textAlign:"left", whiteSpace:"nowrap",
             }}>
               <span style={{ fontSize:13 }}>{n.icon}</span>{n.label}
@@ -1483,7 +1547,7 @@ export default function App() {
           ))}
         </div>
 
-        <div style={{ padding:"14px 18px", borderTop:`1px solid ${D.border}`, fontSize:9, color:D.muted, lineHeight:1.7, whiteSpace:"nowrap" }}>
+        <div style={{ padding:"14px 18px", borderTop:`1px solid ${D.border}`, fontSize:10, color:D.muted, lineHeight:1.7, whiteSpace:"nowrap" }}>
           {tickers.length} 个 ETF · 实时可切换<br/>
           {dataSource === "yahoo" ? `数据截至 ${lastDate} · Yahoo Finance` :
            dataSource === "cache" ? `数据截至 ${lastDate} · 缓存` :
@@ -1496,9 +1560,9 @@ export default function App() {
 
         {/* Top bar */}
         <div style={{
-          display:"flex", alignItems:"center", gap:14, padding:"14px 28px",
+          display:"flex", alignItems:"center", gap: isMobile ? 8 : 14, padding: isMobile ? "10px 14px" : "14px 28px",
           background:D.surface, borderBottom:`1px solid ${D.border}`,
-          position:"sticky", top:0, zIndex:10,
+          position:"sticky", top:0, zIndex:10, flexWrap: isMobile ? "wrap" : "nowrap",
         }}>
           <button onClick={() => setSidebarOpen(v => !v)} style={{
             background:"transparent", border:`1px solid ${D.border}`, borderRadius:6,
@@ -1506,41 +1570,43 @@ export default function App() {
           }}>☰</button>
 
           {/* Ticker badge */}
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"center", gap: isMobile ? 6 : 10 }}>
             <div style={{ width:10, height:10, borderRadius:"50%", background:etf.color }}/>
             <span style={{ fontSize:18, fontWeight:900, color:etf.color, letterSpacing:-0.5 }}>{selectedTicker}</span>
-            <span style={{ fontSize:11, color:D.muted }}>{etf.name}</span>
+            {!isMobile && <span style={{ fontSize:12, color:D.muted }}>{etf.name}</span>}
             <span style={{
-              fontSize:9, background:`${etf.color}15`, border:`1px solid ${etf.color}30`,
+              fontSize:10, background:`${etf.color}15`, border:`1px solid ${etf.color}30`,
               borderRadius:4, padding:"2px 8px", color:etf.color,
             }}>{etf.category}</span>
           </div>
 
           {/* Quick stats */}
-          <div style={{ marginLeft:"auto", display:"flex", gap:20 }}>
+          <div style={{ marginLeft:"auto", display:"flex", gap: isMobile ? 12 : 20 }}>
             {[
               { label:"CAGR",  val:`${cagr}%`,          color:D.green },
               { label:"股息率",val:`${etf.divYield}%`,  color:etf.color },
-              { label:"费用率",val:`${etf.er}%`,         color:D.muted },
-              { label:"Beta",  val:`${etf.beta}`,        color:D.muted },
+              ...( isMobile ? [] : [
+                { label:"费用率",val:`${etf.er}%`,         color:D.muted },
+                { label:"Beta",  val:`${etf.beta}`,        color:D.muted },
+              ]),
             ].map((s,i) => (
               <div key={i} style={{ textAlign:"center" }}>
                 <div style={{ fontSize:13, fontWeight:800, color:s.color }}>{s.val}</div>
-                <div style={{ fontSize:9, color:D.muted }}>{s.label}</div>
+                <div style={{ fontSize:10, color:D.muted }}>{s.label}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Data source banner */}
-        <div style={{ padding:"6px 28px", fontSize:10, color:D.muted, background:D.surface, borderBottom:`1px solid ${D.border}`, display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ padding: isMobile ? "6px 14px" : "6px 28px", fontSize:11, color:D.muted, background:D.surface, borderBottom:`1px solid ${D.border}`, display:"flex", alignItems:"center", gap:8 }}>
           {loading && <span style={{ display:"inline-block", width:10, height:10, border:`2px solid ${etf.color}`, borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>}
           <span>{dataSource === "yahoo" ? `数据截至：${lastDate} · 来源 Yahoo Finance` : dataSource === "cache" ? `数据截至：${lastDate} · 来源缓存` : `⚠ 离线数据`}</span>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
 
         {/* Page content */}
-        <div style={{ maxWidth:900, padding:"28px 28px 60px", opacity:entered&&!loading?1:loading?0.6:0, transition:"opacity 0.4s" }}>
+        <div style={{ maxWidth: isMobile ? "none" : 900, padding: isMobile ? "14px 14px 40px" : "28px 28px 60px", opacity:entered&&!loading?1:loading?0.6:0, transition:"opacity 0.4s" }}>
 
           {/* ══ OVERVIEW ══════════════════════════════════ */}
           {active==="overview" && (() => {
@@ -1550,7 +1616,7 @@ export default function App() {
                 {sectionTitle("概览", `SECTION 01 · OVERVIEW · ${selectedTicker}`)}
 
                 {/* Hero strip */}
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:20 }}>
+                <div style={{ display:"grid", gridTemplateColumns:g4, gap:12, marginBottom:20 }}>
                   {[
                     { label:"CAGR（历史）",  val:`${cagr}%`,           sub:"含股息再投资",       color:etf.color },
                     { label:"当前股息率",     val:`${etf.divYield}%`,   sub:`年增长 ${etf.divGrowth}%`, color:D.green },
@@ -1559,39 +1625,39 @@ export default function App() {
                   ].map((s,i) => (
                     <div key={i} style={{ ...card, textAlign:"center", borderTop:`3px solid ${s.color}` }}>
                       <div style={{ fontSize:22, fontWeight:900, color:s.color }}>{s.val}</div>
-                      <div style={{ fontSize:11, color:D.text, marginTop:4 }}>{s.label}</div>
-                      <div style={{ fontSize:10, color:D.muted, marginTop:2 }}>{s.sub}</div>
+                      <div style={{ fontSize:12, color:D.text, marginTop:4 }}>{s.label}</div>
+                      <div style={{ fontSize:11, color:D.muted, marginTop:2 }}>{s.sub}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Description + strengths */}
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:20 }}>
+                <div style={{ display:"grid", gridTemplateColumns:g2, gap:16, marginBottom:20 }}>
                   <div style={{ ...card }}>
-                    <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>基金简介</div>
+                    <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>基金简介</div>
                     <div style={{ fontSize:12, color:D.text, lineHeight:1.8, marginBottom:14 }}>{etf.description}</div>
-                    <div style={{ fontSize:10, color:D.muted, marginBottom:6 }}>对标基准</div>
+                    <div style={{ fontSize:11, color:D.muted, marginBottom:6 }}>对标基准</div>
                     <div style={{ display:"flex", gap:8 }}>
-                      <span style={{ fontSize:11, color:etf.color, background:`${etf.color}15`, border:`1px solid ${etf.color}30`, borderRadius:5, padding:"3px 10px" }}>{selectedTicker}</span>
-                      <span style={{ fontSize:11, color:D.muted, background:`${D.muted}15`, border:`1px solid ${D.muted}30`, borderRadius:5, padding:"3px 10px" }}>vs {etf.benchmark}</span>
+                      <span style={{ fontSize:12, color:etf.color, background:`${etf.color}15`, border:`1px solid ${etf.color}30`, borderRadius:5, padding:"3px 10px" }}>{selectedTicker}</span>
+                      <span style={{ fontSize:12, color:D.muted, background:`${D.muted}15`, border:`1px solid ${D.muted}30`, borderRadius:5, padding:"3px 10px" }}>vs {etf.benchmark}</span>
                     </div>
                   </div>
                   <div style={{ ...card }}>
-                    <div style={{ fontSize:10, letterSpacing:2, color:D.green, marginBottom:10 }}>核心优势</div>
+                    <div style={{ fontSize:11, letterSpacing:2, color:D.green, marginBottom:10 }}>核心优势</div>
                     {etf.strengths.map((s,i) => (
-                      <div key={i} style={{ display:"flex", gap:8, marginBottom:8, fontSize:11 }}>
+                      <div key={i} style={{ display:"flex", gap:8, marginBottom:8, fontSize:12 }}>
                         <span style={{ color:D.green, flexShrink:0 }}>+</span>
                         <span style={{ color:D.text }}>{s}</span>
                       </div>
                     ))}
-                    <div style={{ fontSize:10, letterSpacing:2, color:D.red, margin:"12px 0 8px" }}>主要风险</div>
+                    <div style={{ fontSize:11, letterSpacing:2, color:D.red, margin:"12px 0 8px" }}>主要风险</div>
                     {etf.risks.map((r,i) => (
-                      <div key={i} style={{ display:"flex", gap:8, marginBottom:6, fontSize:11 }}>
+                      <div key={i} style={{ display:"flex", gap:8, marginBottom:6, fontSize:12 }}>
                         <span style={{ color:D.red, flexShrink:0 }}>−</span>
                         <span style={{ color:D.muted }}>{r}</span>
                       </div>
                     ))}
-                    <div style={{ marginTop:12, background:`${etf.color}08`, border:`1px solid ${etf.color}20`, borderRadius:6, padding:"8px 12px", fontSize:10 }}>
+                    <div style={{ marginTop:12, background:`${etf.color}08`, border:`1px solid ${etf.color}20`, borderRadius:6, padding:"8px 12px", fontSize:11 }}>
                       <span style={{ color:D.muted }}>最佳场景：</span>
                       <span style={{ color:etf.color, fontWeight:700 }}>{etf.bestFor}</span>
                     </div>
@@ -1600,8 +1666,8 @@ export default function App() {
 
                 {/* Total return chart */}
                 <div style={{ ...card, marginBottom:16 }}>
-                  <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>累计总回报（含股息再投资）</div>
-                  <ResponsiveContainer width="100%" height={260}>
+                  <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>累计总回报（含股息再投资）</div>
+                  <ResponsiveContainer width="100%" height={chartHL}>
                     <AreaChart data={tr} margin={{top:4,right:8,left:0,bottom:0}}>
                       <defs>
                         <linearGradient id="trGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1610,9 +1676,9 @@ export default function App() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-                      <XAxis dataKey="date" tick={{fill:D.muted,fontSize:9}} interval={dateInterval(tr.length)}/>
-                      <YAxis tick={{fill:D.muted,fontSize:9}} tickFormatter={v=>`$${v.toFixed(0)}`}/>
-                      <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+                      <XAxis dataKey="date" tick={{fill:D.muted,fontSize:10}} interval={dateInterval(tr.length, isMobile)}/>
+                      <YAxis tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`$${v.toFixed(0)}`}/>
+                      <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
                         formatter={v=>[`$${Number(v).toFixed(2)}`, "总回报"]}/>
                       <Area type="monotone" dataKey="tr" name="总回报" stroke={etf.color} fill="url(#trGrad)" strokeWidth={2} dot={false}/>
                     </AreaChart>
@@ -1622,16 +1688,16 @@ export default function App() {
                 {/* $500/mo DCA result */}
                 {dcaLast && (
                   <div style={{ ...card, background:`linear-gradient(135deg,${D.card},${etf.color}06)`, border:`1px solid ${etf.color}20` }}>
-                    <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>每月 $500 定投结果（全周期）</div>
-                    <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
+                    <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>每月 $500 定投结果（全周期）</div>
+                    <div style={{ display:"grid", gridTemplateColumns:g3, gap:16 }}>
                       {[
                         { label:"最终市值",  val:`$${dcaLast.value.toLocaleString()}`,    color:etf.color },
                         { label:"累计投入",  val:`$${dcaLast.invested.toLocaleString()}`,  color:D.muted },
                         { label:"总收益",    val:`${((dcaLast.value/dcaLast.invested-1)*100).toFixed(1)}%`, color:D.green },
                       ].map((s,i) => (
                         <div key={i} style={{ textAlign:"center" }}>
-                          <div style={{ fontSize:20, fontWeight:900, color:s.color }}>{s.val}</div>
-                          <div style={{ fontSize:10, color:D.muted, marginTop:4 }}>{s.label}</div>
+                          <div style={{ fontSize:22, fontWeight:900, color:s.color }}>{s.val}</div>
+                          <div style={{ fontSize:11, color:D.muted, marginTop:4 }}>{s.label}</div>
                         </div>
                       ))}
                     </div>
@@ -1640,10 +1706,10 @@ export default function App() {
 
                 {/* ── 核心研究发现 ── */}
                 <div style={{ marginTop:24, marginBottom:20 }}>
-                  <div style={{ fontSize:10, letterSpacing:3, color:D.muted, marginBottom:6 }}>EXECUTIVE SUMMARY</div>
+                  <div style={{ fontSize:11, letterSpacing:3, color:D.muted, marginBottom:6 }}>EXECUTIVE SUMMARY</div>
                   <h2 style={{ margin:0, fontSize:18, fontWeight:800, color:D.text, letterSpacing:-0.5 }}>核心研究发现</h2>
                 </div>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:14, marginBottom:24 }}>
+                <div style={{ display:"grid", gridTemplateColumns:g2r, gap:14, marginBottom:24 }}>
                   {[
                     { icon:"📈", title:"收益模式差异", body:`${selectedTicker} CAGR ${cagr}% — 高股息ETF通过股息再投资和复利补偿价格增长差距，长期总回报可观`, color:etf.color },
                     { icon:"📉", title:"回撤风险特征", body:`60%+ 回调幅度小于10%，仅COVID期间达到最大回撤 ${etf.maxDD}%，整体波动远低于成长型ETF`, color:D.red },
@@ -1655,7 +1721,7 @@ export default function App() {
                         <span style={{ fontSize:18 }}>{c.icon}</span>
                         <span style={{ fontSize:13, fontWeight:800, color:c.color }}>{c.title}</span>
                       </div>
-                      <div style={{ fontSize:11, color:D.text, lineHeight:1.8 }}>{c.body}</div>
+                      <div style={{ fontSize:12, color:D.text, lineHeight:1.8 }}>{c.body}</div>
                     </div>
                   ))}
                 </div>
@@ -1685,26 +1751,26 @@ export default function App() {
                   return (
                     <>
                       <div style={{ marginBottom:20 }}>
-                        <div style={{ fontSize:10, letterSpacing:3, color:D.muted, marginBottom:6 }}>INVESTOR POSITIONING</div>
+                        <div style={{ fontSize:11, letterSpacing:3, color:D.muted, marginBottom:6 }}>INVESTOR POSITIONING</div>
                         <h2 style={{ margin:0, fontSize:18, fontWeight:800, color:D.text, letterSpacing:-0.5 }}>投资者年龄定位矩阵 — {etfA} vs {etfB}</h2>
                       </div>
-                      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14 }}>
+                      <div style={{ display:"grid", gridTemplateColumns:g3, gap:14 }}>
                         {stages.map((s,i) => (
                           <div key={i} style={{ ...card, borderTop:`3px solid ${s.color}`, textAlign:"center" }}>
                             <div style={{ fontSize:24, marginBottom:6 }}>{s.icon}</div>
                             <div style={{ fontSize:14, fontWeight:900, color:s.color }}>{s.stage}</div>
-                            <div style={{ fontSize:11, color:D.muted, marginBottom:10 }}>{s.age}</div>
+                            <div style={{ fontSize:12, color:D.muted, marginBottom:10 }}>{s.age}</div>
                             <div style={{ display:"flex", gap:4, marginBottom:10, justifyContent:"center" }}>
                               <div style={{ background:`${colorA}20`, border:`1px solid ${colorA}40`, borderRadius:6, padding:"6px 10px" }}>
                                 <div style={{ fontSize:16, fontWeight:900, color:colorA }}>{s.pctA}%</div>
-                                <div style={{ fontSize:9, color:D.muted }}>{etfA}</div>
+                                <div style={{ fontSize:10, color:D.muted }}>{etfA}</div>
                               </div>
                               <div style={{ background:`${colorB}20`, border:`1px solid ${colorB}40`, borderRadius:6, padding:"6px 10px" }}>
                                 <div style={{ fontSize:16, fontWeight:900, color:colorB }}>{100 - s.pctA}%</div>
-                                <div style={{ fontSize:9, color:D.muted }}>{etfB}</div>
+                                <div style={{ fontSize:10, color:D.muted }}>{etfB}</div>
                               </div>
                             </div>
-                            <div style={{ fontSize:10, color:D.text, lineHeight:1.6 }}>{s.desc}</div>
+                            <div style={{ fontSize:11, color:D.text, lineHeight:1.6 }}>{s.desc}</div>
                           </div>
                         ))}
                       </div>
@@ -1722,14 +1788,14 @@ export default function App() {
 
               {/* Annual returns bar */}
               <div style={{ ...card, marginBottom:16 }}>
-                <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>历年年化收益率</div>
-                <ResponsiveContainer width="100%" height={220}>
+                <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>历年年化收益率</div>
+                <ResponsiveContainer width="100%" height={chartH}>
                   <BarChart data={etf.annualReturns} margin={{top:4,right:8,left:0,bottom:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-                    <XAxis dataKey="y" tick={{fill:D.muted,fontSize:10}}/>
-                    <YAxis tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`${v}%`}/>
+                    <XAxis dataKey="y" tick={{fill:D.muted,fontSize:11}}/>
+                    <YAxis tick={{fill:D.muted,fontSize:11}} tickFormatter={v=>`${v}%`}/>
                     <ReferenceLine y={0} stroke={D.border2}/>
-                    <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+                    <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
                       formatter={v=>[`${v}%`,"年收益"]}/>
                     <Bar dataKey="r" name="年收益" radius={[3,3,0,0]}>
                       {etf.annualReturns.map((d,i) => <Cell key={i} fill={d.r>=0?etf.color:D.red}/>)}
@@ -1740,9 +1806,9 @@ export default function App() {
 
               {/* Monthly heatmap */}
               <div style={{ ...card, marginBottom:16 }}>
-                <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>月度收益热力图</div>
+                <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>月度收益热力图</div>
                 <div style={{ overflowX:"auto" }}>
-                  <table style={{ borderCollapse:"collapse", fontSize:10 }}>
+                  <table style={{ borderCollapse:"collapse", fontSize:11 }}>
                     <thead>
                       <tr>
                         <th style={{ padding:"4px 8px", color:D.muted, textAlign:"left", minWidth:44 }}>年</th>
@@ -1774,7 +1840,7 @@ export default function App() {
 
               {/* YoC projection */}
               <div style={{ ...card }}>
-                <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>Yield on Cost 复利预测（初始 {etf.divYield}%，年增 {etf.divGrowth}%）</div>
+                <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>Yield on Cost 复利预测（初始 {etf.divYield}%，年增 {etf.divGrowth}%）</div>
                 <ResponsiveContainer width="100%" height={180}>
                   <AreaChart
                     data={Array.from({length:31},(_,i) => ({
@@ -1789,14 +1855,14 @@ export default function App() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-                    <XAxis dataKey="yr" tick={{fill:D.muted,fontSize:9}} interval={4}/>
-                    <YAxis tick={{fill:D.muted,fontSize:9}} tickFormatter={v=>`${v}%`}/>
-                    <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+                    <XAxis dataKey="yr" tick={{fill:D.muted,fontSize:10}} interval={isMobile ? 8 : 4}/>
+                    <YAxis tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`${v}%`}/>
+                    <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
                       formatter={v=>[`${v}%`,"YoC"]}/>
                     <Area type="monotone" dataKey="yoc" stroke={D.accent} fill="url(#yocGrad)" strokeWidth={2} dot={false}/>
-                    <ReferenceLine y={etf.divYield} stroke={D.muted} strokeDasharray="3 2" label={{value:"当前收益率",fill:D.muted,fontSize:9}}/>
-                    <ReferenceLine y={10} stroke={D.spy}   strokeDasharray="3 2" label={{value:"10% YoC",fill:D.spy,fontSize:9}}/>
-                    <ReferenceLine y={20} stroke={D.green} strokeDasharray="3 2" label={{value:"20% YoC",fill:D.green,fontSize:9}}/>
+                    <ReferenceLine y={etf.divYield} stroke={D.muted} strokeDasharray="3 2" label={{value:"当前收益率",fill:D.muted,fontSize:10}}/>
+                    <ReferenceLine y={10} stroke={D.spy}   strokeDasharray="3 2" label={{value:"10% YoC",fill:D.spy,fontSize:10}}/>
+                    <ReferenceLine y={20} stroke={D.green} strokeDasharray="3 2" label={{value:"20% YoC",fill:D.green,fontSize:10}}/>
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -1810,8 +1876,8 @@ export default function App() {
 
               {/* Drawdown chart */}
               <div style={{ ...card, marginBottom:16 }}>
-                <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>水下曲线（回撤幅度）</div>
-                <ResponsiveContainer width="100%" height={220}>
+                <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>水下曲线（回撤幅度）</div>
+                <ResponsiveContainer width="100%" height={chartH}>
                   <AreaChart data={dd} margin={{top:4,right:8,left:0,bottom:0}}>
                     <defs>
                       <linearGradient id="ddGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1820,11 +1886,11 @@ export default function App() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-                    <XAxis dataKey="date" tick={{fill:D.muted,fontSize:9}} interval={dateInterval(dd.length)}/>
-                    <YAxis tick={{fill:D.muted,fontSize:9}} tickFormatter={v=>`${v}%`}/>
+                    <XAxis dataKey="date" tick={{fill:D.muted,fontSize:10}} interval={dateInterval(dd.length, isMobile)}/>
+                    <YAxis tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`${v}%`}/>
                     <ReferenceLine y={etf.maxDD} stroke={D.red} strokeDasharray="4 3"
-                      label={{value:`最大回撤 ${etf.maxDD}%`,fill:D.red,fontSize:9,position:"right"}}/>
-                    <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+                      label={{value:`最大回撤 ${etf.maxDD}%`,fill:D.red,fontSize:10,position:"right"}}/>
+                    <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
                       formatter={v=>[`${v}%`,"回撤"]}/>
                     <Area type="monotone" dataKey="dd" name="回撤" stroke={D.red} fill="url(#ddGrad)" strokeWidth={1.5} dot={false}/>
                   </AreaChart>
@@ -1832,7 +1898,7 @@ export default function App() {
               </div>
 
               {/* Key risk metrics */}
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:16 }}>
+              <div style={{ display:"grid", gridTemplateColumns:g3, gap:12, marginBottom:16 }}>
                 {[
                   { label:"最大回撤",    val:`${etf.maxDD}%`,   color:D.red,    note:"历史最深" },
                   { label:"Beta 系数",   val:`${etf.beta}`,     color:etf.color, note:"vs 市场" },
@@ -1840,8 +1906,8 @@ export default function App() {
                 ].map((s,i) => (
                   <div key={i} style={{ ...card, textAlign:"center" }}>
                     <div style={{ fontSize:24, fontWeight:900, color:s.color }}>{s.val}</div>
-                    <div style={{ fontSize:11, color:D.text, marginTop:4 }}>{s.label}</div>
-                    <div style={{ fontSize:10, color:D.muted, marginTop:2 }}>{s.note}</div>
+                    <div style={{ fontSize:12, color:D.text, marginTop:4 }}>{s.label}</div>
+                    <div style={{ fontSize:11, color:D.muted, marginTop:2 }}>{s.note}</div>
                   </div>
                 ))}
               </div>
@@ -1856,18 +1922,18 @@ export default function App() {
                 ];
                 return (
                   <div style={{ ...card, marginBottom:16 }}>
-                    <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>熊市对比 — SCHD vs SPY 最大回撤</div>
+                    <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>熊市对比 — SCHD vs SPY 最大回撤</div>
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={bearMarkets} margin={{top:4,right:16,left:0,bottom:0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-                        <XAxis dataKey="event" tick={{fill:D.muted,fontSize:10}}/>
-                        <YAxis tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`${v}%`}/>
+                        <XAxis dataKey="event" tick={{fill:D.muted,fontSize:11}}/>
+                        <YAxis tick={{fill:D.muted,fontSize:11}} tickFormatter={v=>`${v}%`}/>
                         <ReferenceLine y={0} stroke={D.border2}/>
-                        <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+                        <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
                           formatter={v=>[`${v}%`]}/>
                         <Bar dataKey="schd" name="SCHD" fill="#38bdf8" radius={[3,3,0,0]}/>
                         <Bar dataKey="spy" name="SPY" fill="#f59e0b" radius={[3,3,0,0]}/>
-                        <Legend wrapperStyle={{fontSize:10}}/>
+                        <Legend wrapperStyle={{fontSize: isMobile ? 10 : 11, paddingTop: isMobile ? 8 : 0}}/>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1893,13 +1959,13 @@ export default function App() {
                 }));
                 return (
                   <div style={{ ...card, marginBottom:16 }}>
-                    <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>回调概率分布（基于历史水下数据）</div>
+                    <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>回调概率分布（基于历史水下数据）</div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={probData} layout="vertical" margin={{top:4,right:16,left:0,bottom:0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={D.border} horizontal={false}/>
-                        <XAxis type="number" tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`${v}%`}/>
-                        <YAxis type="category" dataKey="range" tick={{fill:D.text,fontSize:11}} width={55}/>
-                        <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+                        <XAxis type="number" tick={{fill:D.muted,fontSize:11}} tickFormatter={v=>`${v}%`}/>
+                        <YAxis type="category" dataKey="range" tick={{fill:D.text,fontSize:12}} width={55}/>
+                        <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
                           formatter={v=>[`${v}%`,"出现概率"]}/>
                         <Bar dataKey="pct" name="概率" radius={[0,4,4,0]}>
                           {probData.map((d,i) => <Cell key={i} fill={d.color}/>)}
@@ -1916,25 +1982,25 @@ export default function App() {
                 if (recoveryData.length === 0) return null;
                 return (
                   <div style={{ ...card, marginBottom:16 }}>
-                    <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:10 }}>各跌幅区间平均恢复时间（月）</div>
+                    <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:10 }}>各跌幅区间平均恢复时间（月）</div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={recoveryData} layout="vertical" margin={{top:4,right:16,left:0,bottom:0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={D.border} horizontal={false}/>
-                        <XAxis type="number" tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`${v}月`}/>
-                        <YAxis type="category" dataKey="range" tick={{fill:D.text,fontSize:11}} width={55}/>
-                        <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:11}}
+                        <XAxis type="number" tick={{fill:D.muted,fontSize:11}} tickFormatter={v=>`${v}月`}/>
+                        <YAxis type="category" dataKey="range" tick={{fill:D.text,fontSize:12}} width={55}/>
+                        <Tooltip contentStyle={{background:D.card,border:`1px solid ${D.border}`,fontSize:12}}
                           formatter={(v,name) => name==="avgMonths" ? [`${v} 个月`,"平均恢复"] : [`${v} 次`,"发生次数"]}/>
                         <Bar dataKey="avgMonths" name="avgMonths" radius={[0,4,4,0]}>
                           {recoveryData.map((d,i) => <Cell key={i} fill={d.color}/>)}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div style={{ display:"grid", gridTemplateColumns:`repeat(${Math.min(recoveryData.length, 5)},1fr)`, gap:8, marginTop:12 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:`repeat(${isMobile ? Math.min(recoveryData.length, 2) : Math.min(recoveryData.length, 5)},1fr)`, gap:8, marginTop:12 }}>
                       {recoveryData.map((d,i) => (
                         <div key={i} style={{ textAlign:"center", padding:"8px 4px", background:`${d.color}10`, borderRadius:6, border:`1px solid ${d.color}20` }}>
-                          <div style={{ fontSize:11, fontWeight:700, color:d.color }}>{d.range}</div>
-                          <div style={{ fontSize:18, fontWeight:900, color:d.color, margin:"4px 0" }}>{d.avgMonths}<span style={{fontSize:10}}>月</span></div>
-                          <div style={{ fontSize:10, color:D.muted }}>发生 {d.count} 次</div>
+                          <div style={{ fontSize:12, fontWeight:700, color:d.color }}>{d.range}</div>
+                          <div style={{ fontSize:18, fontWeight:900, color:d.color, margin:"4px 0" }}>{d.avgMonths}<span style={{fontSize:11}}>月</span></div>
+                          <div style={{ fontSize:11, color:D.muted }}>发生 {d.count} 次</div>
                         </div>
                       ))}
                     </div>
@@ -1944,8 +2010,8 @@ export default function App() {
 
               {/* ── 关键恢复规律 ── */}
               <div style={{ ...card, marginBottom:16 }}>
-                <div style={{ fontSize:10, letterSpacing:2, color:D.muted, marginBottom:14 }}>关键恢复规律</div>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:12 }}>
+                <div style={{ fontSize:11, letterSpacing:2, color:D.muted, marginBottom:14 }}>关键恢复规律</div>
+                <div style={{ display:"grid", gridTemplateColumns:g2r, gap:12 }}>
                   {[
                     { icon:"⏱️", title:"恢复速度", body:"10%以内的回调通常2–4个月恢复，20%以上回调需6–18个月", color:D.green },
                     { icon:"📊", title:"回调频率", body:"每年平均经历2–3次5%+回调，是正常市场节奏而非异常", color:"#38bdf8" },
@@ -1957,7 +2023,7 @@ export default function App() {
                         <span style={{ fontSize:16 }}>{r.icon}</span>
                         <span style={{ fontSize:12, fontWeight:800, color:r.color }}>{r.title}</span>
                       </div>
-                      <div style={{ fontSize:11, color:D.text, lineHeight:1.7 }}>{r.body}</div>
+                      <div style={{ fontSize:12, color:D.text, lineHeight:1.7 }}>{r.body}</div>
                     </div>
                   ))}
                 </div>
@@ -1966,18 +2032,18 @@ export default function App() {
               {/* DCA chart */}
               <div style={{ ...card }}>
                 <div style={{ display:"flex", gap:8, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
-                  <span style={{ fontSize:10, letterSpacing:2, color:D.muted }}>定投模拟 — 每月：</span>
+                  <span style={{ fontSize:11, letterSpacing:2, color:D.muted }}>定投模拟 — 每月：</span>
                   {[200,500,1000,2000].map(v => (
                     <button key={v} onClick={() => setDcaAmt(v)} style={{
                       background: dcaAmt===v ? `${etf.color}15` : D.surface,
                       border: `1px solid ${dcaAmt===v ? etf.color : D.border}`,
                       borderRadius:6, padding:"4px 12px",
                       color: dcaAmt===v ? etf.color : D.muted,
-                      cursor:"pointer", fontFamily:"inherit", fontSize:11,
+                      cursor:"pointer", fontFamily:"inherit", fontSize:12,
                     }}>${v}</button>
                   ))}
                 </div>
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={chartH}>
                   <AreaChart data={dca} margin={{top:4,right:8,left:0,bottom:0}}>
                     <defs>
                       <linearGradient id="dcaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1986,8 +2052,8 @@ export default function App() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={D.border}/>
-                    <XAxis dataKey="date" tick={{fill:D.muted,fontSize:9}} interval={dateInterval(dca.length)}/>
-                    <YAxis tick={{fill:D.muted,fontSize:9}} tickFormatter={v=>`$${(v/1000).toFixed(0)}k`}/>
+                    <XAxis dataKey="date" tick={{fill:D.muted,fontSize:10}} interval={dateInterval(dca.length, isMobile)}/>
+                    <YAxis tick={{fill:D.muted,fontSize:10}} tickFormatter={v=>`$${(v/1000).toFixed(0)}k`}/>
                     <Tooltip content={<TT money/>}/>
                     <Area type="monotone" dataKey="value"    name="市值"   stroke={etf.color} fill="url(#dcaGrad)" strokeWidth={2} dot={false}/>
                     <Area type="monotone" dataKey="invested" name="投入本金" stroke={D.muted}   fill="none"         strokeWidth={1} dot={false} strokeDasharray="4 3"/>
@@ -1999,24 +2065,24 @@ export default function App() {
 
           {/* ══ BUY STRATEGY (independent page) ═══════════ */}
           {active==="buystrategy" && (
-            <BuyStrategy etf={etf} card={card} sectionTitle={sectionTitle}/>
+            <BuyStrategy etf={etf} card={card} sectionTitle={sectionTitle} isMobile={isMobile}/>
           )}
 
           {/* ══ HOLDINGS ══════════════════════════════════ */}
           {active==="holdings" && (
-            <HoldingsSection etf={etf} selectedTicker={selectedTicker} card={card} sectionTitle={sectionTitle}/>
+            <HoldingsSection etf={etf} selectedTicker={selectedTicker} card={card} sectionTitle={sectionTitle} isMobile={isMobile}/>
           )}
 
           {/* ══ COMPARE ═══════════════════════════════════ */}
           {active==="compare" && (
-            <CompareSection activeETF={etf} card={card} sectionTitle={sectionTitle}/>
+            <CompareSection activeETF={etf} card={card} sectionTitle={sectionTitle} isMobile={isMobile}/>
           )}
 
           {/* ══ RETIREMENT ════════════════════════════════ */}
           {active==="retirement" && (
             <div>
               {sectionTitle("退休规划", `SECTION 07 · RETIREMENT PLANNER · ${selectedTicker}`)}
-              <RetirementSection etf={etf} card={card}/>
+              <RetirementSection etf={etf} card={card} isMobile={isMobile}/>
             </div>
           )}
 
@@ -2041,7 +2107,7 @@ export default function App() {
               {sectionTitle("投资结论", `SECTION 08 · INVESTMENT CONCLUSION · ${etfA} vs ${etfB}`)}
 
               {/* Dynamic rating cards */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:24 }}>
+              <div style={{ display:"grid", gridTemplateColumns:g2, gap:16, marginBottom:24 }}>
                 {[
                   {
                     ticker:etfA, rating: eA.sharpe >= 0.8 ? "A+" : eA.sharpe >= 0.6 ? "A" : "B+", subtitle:eA.category, color:colorA,
@@ -2060,27 +2126,27 @@ export default function App() {
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
                       <div>
                         <div style={{ fontSize:22, fontWeight:900, color:s.color }}>{s.ticker}</div>
-                        <div style={{ fontSize:11, color:D.muted }}>{s.subtitle}</div>
+                        <div style={{ fontSize:12, color:D.muted }}>{s.subtitle}</div>
                       </div>
                       <div style={{ background:`${s.color}15`, border:`2px solid ${s.color}`, borderRadius:10, padding:"6px 14px" }}>
                         <div style={{ fontSize:22, fontWeight:900, color:s.color, textAlign:"center" }}>{s.rating}</div>
                       </div>
                     </div>
-                    <div style={{ fontSize:10, letterSpacing:2, color:D.green, marginBottom:8 }}>核心优势</div>
+                    <div style={{ fontSize:11, letterSpacing:2, color:D.green, marginBottom:8 }}>核心优势</div>
                     {s.strengths.map((st,j) => (
-                      <div key={j} style={{ display:"flex", gap:6, marginBottom:5, fontSize:11 }}>
+                      <div key={j} style={{ display:"flex", gap:6, marginBottom:5, fontSize:12 }}>
                         <span style={{ color:D.green, flexShrink:0 }}>✓</span>
                         <span style={{ color:D.text }}>{st}</span>
                       </div>
                     ))}
-                    <div style={{ fontSize:10, letterSpacing:2, color:D.red, margin:"12px 0 8px" }}>主要风险</div>
+                    <div style={{ fontSize:11, letterSpacing:2, color:D.red, margin:"12px 0 8px" }}>主要风险</div>
                     {s.risks.map((r,j) => (
-                      <div key={j} style={{ display:"flex", gap:6, marginBottom:5, fontSize:11 }}>
+                      <div key={j} style={{ display:"flex", gap:6, marginBottom:5, fontSize:12 }}>
                         <span style={{ color:D.red, flexShrink:0 }}>✗</span>
                         <span style={{ color:D.muted }}>{r}</span>
                       </div>
                     ))}
-                    <div style={{ marginTop:12, background:`${s.color}08`, border:`1px solid ${s.color}20`, borderRadius:6, padding:"8px 12px", fontSize:11 }}>
+                    <div style={{ marginTop:12, background:`${s.color}08`, border:`1px solid ${s.color}20`, borderRadius:6, padding:"8px 12px", fontSize:12 }}>
                       <span style={{ color:D.muted }}>最佳场景：</span>
                       <span style={{ color:s.color, fontWeight:700 }}>{s.bestScene}</span>
                     </div>
@@ -2090,10 +2156,10 @@ export default function App() {
 
               {/* 综合配置建议 — dynamic */}
               <div style={{ marginBottom:20 }}>
-                <div style={{ fontSize:10, letterSpacing:3, color:D.muted, marginBottom:6 }}>ASSET ALLOCATION</div>
+                <div style={{ fontSize:11, letterSpacing:3, color:D.muted, marginBottom:6 }}>ASSET ALLOCATION</div>
                 <h2 style={{ margin:0, fontSize:18, fontWeight:800, color:D.text, letterSpacing:-0.5 }}>综合配置建议 — {etfA} + {etfB}</h2>
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:24 }}>
+              <div style={{ display:"grid", gridTemplateColumns:g3, gap:14, marginBottom:24 }}>
                 {[
                   { stage:"20–40岁", pctA:alloc.acc,  desc:"积累期：最大化长期复利", color:"#38bdf8", icon:"🚀" },
                   { stage:"40–55岁", pctA:alloc.bal,  desc:"平衡期：兼顾增值与收入", color:"#f59e0b", icon:"⚖️" },
@@ -2104,15 +2170,15 @@ export default function App() {
                     <div style={{ fontSize:15, fontWeight:900, color:s.color, marginBottom:4 }}>{s.stage}</div>
                     <div style={{ display:"flex", justifyContent:"center", gap:8, marginBottom:10 }}>
                       <div style={{ background:`${colorA}15`, borderRadius:8, padding:"8px 14px", border:`1px solid ${colorA}30` }}>
-                        <div style={{ fontSize:20, fontWeight:900, color:colorA }}>{s.pctA}%</div>
-                        <div style={{ fontSize:9, color:D.muted }}>{etfA}</div>
+                        <div style={{ fontSize:22, fontWeight:900, color:colorA }}>{s.pctA}%</div>
+                        <div style={{ fontSize:10, color:D.muted }}>{etfA}</div>
                       </div>
                       <div style={{ background:`${colorB}15`, borderRadius:8, padding:"8px 14px", border:`1px solid ${colorB}30` }}>
-                        <div style={{ fontSize:20, fontWeight:900, color:colorB }}>{100 - s.pctA}%</div>
-                        <div style={{ fontSize:9, color:D.muted }}>{etfB}</div>
+                        <div style={{ fontSize:22, fontWeight:900, color:colorB }}>{100 - s.pctA}%</div>
+                        <div style={{ fontSize:10, color:D.muted }}>{etfB}</div>
                       </div>
                     </div>
-                    <div style={{ fontSize:11, color:D.text, lineHeight:1.6 }}>{s.desc}</div>
+                    <div style={{ fontSize:12, color:D.text, lineHeight:1.6 }}>{s.desc}</div>
                   </div>
                 ))}
               </div>
@@ -2123,11 +2189,11 @@ export default function App() {
                 background:`linear-gradient(135deg, ${colorA}08, ${colorB}08)`,
                 border:`1px solid ${D.border2}`,
               }}>
-                <div style={{ fontSize:10, letterSpacing:3, color:D.muted, marginBottom:14 }}>FINAL TAKEAWAY</div>
+                <div style={{ fontSize:11, letterSpacing:3, color:D.muted, marginBottom:14 }}>FINAL TAKEAWAY</div>
                 <div style={{ fontSize:16, fontWeight:800, color:D.text, lineHeight:1.9 }}>
                   "{etfB} 让你变富，{etfA} 让你退休。<br/>它们是不同人生阶段的搭档，而非二选一。"
                 </div>
-                <div style={{ marginTop:14, fontSize:10, color:D.muted }}>—— ETF 深度研究结论</div>
+                <div style={{ marginTop:14, fontSize:11, color:D.muted }}>—— ETF 深度研究结论</div>
               </div>
             </div>
             );

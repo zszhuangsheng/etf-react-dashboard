@@ -96,9 +96,9 @@ describe('ETF Dashboard', () => {
     const concBtn = Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('投资结论'));
     fireEvent.click(concBtn);
     const allText = container.textContent;
-    // Default ticker is SCHD, so it should compare SCHD vs SPY
-    expect(allText).toContain('SCHD');
+    // Default ticker is SPY, so it should compare SPY vs QQQ
     expect(allText).toContain('SPY');
+    expect(allText).toContain('QQQ');
   });
 
   it('conclusion page has allocation advice and summary quote', () => {
